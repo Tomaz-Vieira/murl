@@ -1,9 +1,15 @@
 [package]
-name = "gurl"
+name = "murl"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 camino = "1.1.9"
+derive_more = { version = "1.0.0", features = ["deref", "display"] }
+nom = "7.1.3"
 percent-encoding = "2.3.1"
+strum = { version = "0.26.3", features = ["derive"] }
 thiserror = "1.0.64"
+
+[dev-dependencies]
+url = "2.5.2"
