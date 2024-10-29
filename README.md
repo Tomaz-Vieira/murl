@@ -1,3 +1,5 @@
+ [<img alt="crates.io" src="https://img.shields.io/crates/v/murl">](https://crates.io/crates/murl)
+
  # Murl
  Non-stringly-typed URLs.
 
