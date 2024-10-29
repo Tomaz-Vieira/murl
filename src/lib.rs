@@ -51,8 +51,14 @@ pub enum LabelError{
     FirstCharNotAlphabetic,
 }
 
-#[derive(derive_more::Display, derive_more::Deref, Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Label(String);
+
+impl Display for Label{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 impl Label{
     pub fn parse(input: &str) -> Result<(Self, &str), LabelError>{
