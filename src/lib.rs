@@ -115,7 +115,7 @@ impl Label{
 }
 
 impl Label{
-    pub fn char_is_allowed(c: char) -> bool{
+    fn char_is_allowed(c: char) -> bool{
         return c.is_alphabetic() || "_-".contains(c);
     }
 }
