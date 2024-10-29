@@ -2,7 +2,7 @@
 //! Non-stringly-typed URLs.
 //!
 //! Urls are often used as strings, but what they really are is a serialized
-//! structure with fields such as `scheme`, `hostname`, and `query_params`.
+//! structure with fields such as `scheme`, `host`, `path` and `query_params`.
 //! In fact, `murl` URLs do _not_ contain their string representation inside them.
 //!
 //! This crate provides the `Url` struct, which should be the preferred
@@ -238,12 +238,19 @@ pub enum UrlParsingError{
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// A structured, non-string-based URL
 pub struct Url{
+    /// The URL scheme, like `http` in `http://example.com/`
     pub scheme: Scheme,
+    /// The URL hostname, like `example.com` in `http://example.com/`
     pub host: Host,
+    /// A port number, like `80` in `http://example.com:80/`
     pub port: Option<u16>,
+    /// The URL path, like `/` in `http://example.com/`
     pub path: Utf8PathBuf,
+    /// The query parameters, like `a=123&b=456` in `http://example.com/?a=123&b=456`
     pub query: BTreeMap<String, String>,
+    /// The URL fragment, like `paragraph_1` in `http://example.com/#paragraph_1`
     pub fragment: Option<String>,
 }
 
@@ -348,9 +355,7 @@ impl Display for Url{
 }
 
 impl Url{
-    // pub fn parse(raw: &str) -> Result<Self, String>{
-
-    // }
+    /// Consumes the URL and returns a URL whose path is the parent of the original one
     pub fn into_parent(mut self) -> Self{
         self.path.pop();
         self
