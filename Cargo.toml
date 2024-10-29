@@ -2,6 +2,12 @@
 name = "murl"
 version = "0.1.0"
 edition = "2021"
+description = "Non-stringly-typed URLs"
+license = "MIT"
+keywords = ["url"]
+repository = "https://github.com/Tomaz-Vieira/murl"
+readme = "README.md"
+categories = ["web-programming", "encoding"]
 
 [dependencies]
 camino = "1.1.9"
