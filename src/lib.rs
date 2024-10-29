@@ -54,7 +54,7 @@ const ESCAPE_SET: &percent_encoding::AsciiSet =    &percent_encoding::CONTROLS
     .add(b'%');
 
 #[derive(PartialEq, Eq, Copy, Clone, strum::Display, strum::AsRefStr, strum::VariantArray, Debug)]
-pub enum Protocol{
+pub enum Scheme{
     //Note: the order is important for parsing because ws is a prefix of wss
     #[strum(serialize="wss")]
     Wss,
@@ -67,18 +67,18 @@ pub enum Protocol{
 }
 
 #[derive(thiserror::Error, Debug)]
-#[error("Could not parse protocol")]
-pub struct ProtocolParsingError;
+#[error("Could not parse scheme")]
+pub struct SchemeParsingError;
 
-impl Protocol{
-    pub fn parse(input: &str) -> Result<(Self, &str), ProtocolParsingError>{
+impl Scheme{
+    pub fn parse(input: &str) -> Result<(Self, &str), SchemeParsingError>{
         use strum::VariantArray;
-        for variant in Protocol::VARIANTS{
+        for variant in Scheme::VARIANTS{
             if let Some(rest) = input.strip_prefix(variant.as_ref()){
                 return Ok((*variant, rest))
             }
         }
-        Err(ProtocolParsingError)
+        Err(SchemeParsingError)
     }
 }
 
@@ -186,7 +186,7 @@ impl Display for Host{
 #[derive(thiserror::Error, Debug)]
 pub enum UrlParsingError{
     #[error(transparent)]
-    ProtocolParsingError(#[from] ProtocolParsingError),
+    SchemeParsingError(#[from] SchemeParsingError),
     #[error("Missing separator")]
     MissingSeparator,
     #[error(transparent)]
@@ -203,7 +203,7 @@ pub enum UrlParsingError{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Url{
-    pub protocol: Protocol,
+    pub scheme: Scheme,
     pub host: Host,
     pub port: Option<u16>,
     pub path: Utf8PathBuf,
@@ -214,7 +214,7 @@ pub struct Url{
 impl FromStr for Url{
     type Err = UrlParsingError;
     fn from_str(input: &str) -> Result<Self, UrlParsingError>{
-        let (protocol, input) = Protocol::parse(input)?;
+        let (scheme, input) = Scheme::parse(input)?;
         let input = input.strip_prefix("://").ok_or(UrlParsingError::MissingSeparator)?;
         let (host, input) = Host::parse(input)?;
 
@@ -272,7 +272,7 @@ impl FromStr for Url{
         let fragment = percent_decode_str(raw_fragment).decode_utf8().map_err(|_| UrlParsingError::CantDecode)?;
 
         Ok(Url{
-            protocol,
+            scheme,
             host,
             port,
             path,
@@ -284,8 +284,8 @@ impl FromStr for Url{
 
 impl Display for Url{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Self{protocol, host, path, ..} = self;
-        write!(f, "{protocol}://{host}")?;
+        let Self{scheme, host, path, ..} = self;
+        write!(f, "{scheme}://{host}")?;
         if let Some(port) = &self.port{
             write!(f, ":{port}")?;
         }
@@ -325,7 +325,7 @@ impl Url{
 #[test]
 fn test_parsing(){
     let mut url = Url{
-        protocol: Protocol::Https,
+        scheme: Scheme::Https,
         host: Host {
             name: Label::from_str("some_host").unwrap(),
             domains:  vec![
@@ -344,7 +344,7 @@ fn test_parsing(){
     };
 
     let url_param = Url{
-        protocol: Protocol::Https,
+        scheme: Scheme::Https,
         host: Host {
             name: Label::from_str("param_host").unwrap(),
             domains:  vec![
