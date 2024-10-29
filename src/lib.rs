@@ -4,9 +4,13 @@ use percent_encoding::percent_decode_str;
 use std::{collections::BTreeMap, fmt::Display, str::FromStr};
 use camino::Utf8PathBuf;
 
-const FRAGMENT: &percent_encoding::AsciiSet = &percent_encoding::CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
-const QUERY: &percent_encoding::AsciiSet =    &percent_encoding::CONTROLS.add(b' ').add(b'"').add(b'#').add(b'<').add(b'>').add(b'=').add(b'&');
-const PATH: &percent_encoding::AsciiSet = &QUERY.add(b'?').add(b'`').add(b'{').add(b'}');
+const ESCAPE_SET: &percent_encoding::AsciiSet =    &percent_encoding::CONTROLS
+    .add(b' ')
+    .add(b'"').add(b'`')
+    .add(b'<').add(b'>')
+    .add(b'?').add(b'#').add(b'=').add(b'&')
+    .add(b'{').add(b'}')
+    .add(b'%');
 
 #[derive(PartialEq, Eq, Copy, Clone, strum::Display, strum::AsRefStr, strum::VariantArray, Debug)]
 pub enum Protocol{
@@ -241,19 +245,19 @@ impl Display for Url{
         if !path.is_absolute(){
             write!(f, "/")?;
         }
-        let path_str: String = percent_encoding::percent_encode(path.as_str().as_bytes(), &PATH).collect();
+        let path_str: String = percent_encoding::percent_encode(path.as_str().as_bytes(), ESCAPE_SET).collect();
         write!(f, "{path_str}")?;
         if self.query.len() > 0 {
             write!(f, "?")?;
             for (idx, (k, v)) in self.query.iter().enumerate(){
                 let separator = if idx > 0 { "&" } else {""};
-                let k = percent_encoding::utf8_percent_encode(k, QUERY);
-                let v = percent_encoding::utf8_percent_encode(v, QUERY);
+                let k = percent_encoding::utf8_percent_encode(k, ESCAPE_SET);
+                let v = percent_encoding::utf8_percent_encode(v, ESCAPE_SET);
                 write!(f, "{separator}{k}={v}")?;
             }
         }
         if let Some(fragment) = &self.fragment{
-            let fragment = percent_encoding::utf8_percent_encode(fragment, FRAGMENT);
+            let fragment = percent_encoding::utf8_percent_encode(fragment, ESCAPE_SET);
             write!(f, "#{fragment}")?;
         }
         Ok(())
