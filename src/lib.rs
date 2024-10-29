@@ -1,3 +1,44 @@
+//!  # Murl
+//! Non-stringly-typed URLs.
+//!
+//! Urls are often used as strings, but what they really are is a serialized
+//! structure with fields such as `scheme`, `hostname`, and `query_params`.
+//!
+//! This crate provides the `Url` struct, which should be the preferred
+//! way to create and modify URLs instead of fallibly parsing and/or concatenating
+//! strings, without ever exposing the user to things like percent-encoding issues.
+//! <br>
+//! ## Examples
+//!
+//! ### Infallibly creating a url
+//! ```rust
+//!    use std::str::FromStr;
+//!    use std::collections::BTreeMap;
+//!    use murl::{Url, Protocol, Host, Label};
+//!    use camino::Utf8PathBuf;
+//!    // non-fallibly creating the url
+//!    let mut url = Url{
+//!        protocol: Protocol::Https,
+//!        host: Host { // the hostname is e"xample.com"
+//!            name: Label::from_str("example").unwrap(),
+//!            domains:  vec![
+//!                Label::from_str("com").unwrap(),
+//!            ]
+//!        },
+//!        port: Some(443),
+//!        path: Utf8PathBuf::from_str("/some/path").unwrap(),
+//!        query: BTreeMap::from([ // query params are just raw strings. Escaping is done automatically
+//!            ("key with spaces".into(), "val&with&ampersands".into()),
+//!            ("key=with=equals".into(), "val#with#hashtag".into()),
+//!        ]),
+//!        fragment: None,
+//!    };
+//!    assert_eq!(
+//!        url.to_string(),
+//!        "https://example.com:443/some/path?key%20with%20spaces=val%26with%26ampersands&key%3Dwith%3Dequals=val%23with%23hashtag"
+//!    );
+//!```
+
 pub use camino;
 use percent_encoding::percent_decode_str;
 
@@ -201,7 +242,7 @@ impl FromStr for Url{
                         }
                     },
                 }
-            }, 
+            },
         };
 
         let decoded_path = percent_encoding::percent_decode(raw_path.as_bytes())
@@ -280,6 +321,7 @@ impl Url{
     }
 }
 
+
 #[test]
 fn test_parsing(){
     let mut url = Url{
@@ -293,62 +335,42 @@ fn test_parsing(){
             ]
         },
         port: Some(123),
-        path: Utf8PathBuf::from_str("/some/path/question_mark?question_mark").unwrap(),
+        path: Utf8PathBuf::from_str("/some/path/path_question_mark?path_question_mark").unwrap(),
         query: BTreeMap::from([
             ("space space".into(), "ampersand&ampersand".into()),
             ("equals=equals".into(), "hashtag#hashtag".into()),
         ]),
         fragment: Some("inner_fragment".into()),
     };
-    url.query.insert("some_url".to_owned(), url.to_string());
 
-    let raw: String = url.to_string();
-    let parsed = Url::from_str(&raw).unwrap();
-
-    assert_eq!(url, parsed);
-}
-
-#[test]
-fn test_display(){
-    use std::str::FromStr;
-    
-    let inner_url = Url{
-        protocol: Protocol::Http,
+    let url_param = Url{
+        protocol: Protocol::Https,
         host: Host {
-            name: Label::from_str("inner_host").unwrap(),
+            name: Label::from_str("param_host").unwrap(),
             domains:  vec![
-                Label::from_str("a").unwrap(),
-                Label::from_str("b").unwrap(),
-                Label::from_str("c").unwrap(),
             ]
         },
-        port: None,
-        path: Utf8PathBuf::from_str("/some/path").unwrap(),
+        port: Some(123),
+        path: Utf8PathBuf::from_str("/some/path/param_question_mark?param_question_mark").unwrap(),
         query: BTreeMap::from([
-            ("inner_param1".into(), "value1".into()),
+            ("space space".into(), "ampersand&ampersand".into()),
+            ("equals=equals".into(), "hashtag#hashtag".into()),
         ]),
         fragment: Some("inner_fragment".into()),
     };
 
-    let url = Url{
-        protocol: Protocol::Http,
-        host: Host {
-            name: Label::from_str("localhost").unwrap(),
-            domains:  vec![
-                Label::from_str("some").unwrap(),
-                Label::from_str("domain").unwrap(),
-                Label::from_str("com").unwrap(),
-            ]},
-        port: None,
-        path: Utf8PathBuf::from_str("/some/path").unwrap(),
-        query: BTreeMap::from([
-            ("param1".into(), "value1".into()),
-            ("param2".into(), "value2".into()),
-            ("param3".into(), inner_url.to_string()),
-        ]),
-        fragment: Some("my fragment".into()),
-    };
-    // let url_str = url.to_string();
-    // assert_eq!(url_str, "http://localhost.some.domain.com/some/path?param1=value1&param2=value2#my%20fragment")
-    
+    url.query.insert("some_url".to_owned(), url_param.to_string());
+
+    let raw: String = url.to_string();
+    let parsed = Url::from_str(&raw).unwrap();
+
+    println!("orig: {url}");
+    println!("pars: {parsed}");
+
+    assert_eq!(url, parsed);
+
+
+    let parsed_url_param = Url::from_str(parsed.query.get("some_url").unwrap()).unwrap();
+    assert_eq!(url_param, parsed_url_param);
 }
+
