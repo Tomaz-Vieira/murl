@@ -16,7 +16,6 @@
  ### Infallibly creating a URL
  ```rust
 use std::str::FromStr;
-use std::collections::BTreeMap;
 use murl::{Url, Scheme, Host, Label};
 use camino::Utf8PathBuf;
 // non-fallibly creating the url
@@ -30,7 +29,7 @@ use camino::Utf8PathBuf;
      },
      port: Some(443),
      path: Utf8PathBuf::from("/some/path"),
-     query: BTreeMap::from([ // query params are just strings. Escaping is done automatically
+     query: ordermap::OrderMap::from([ // query params are just strings. Escaping is done automatically
          ("key with spaces".into(), "val&with&ampersands".into()),
          ("key=with=equals".into(), "val#with#hashtag".into()),
      ]),
@@ -47,7 +46,6 @@ use camino::Utf8PathBuf;
 
  ```rust
  use std::str::FromStr;
- use std::collections::BTreeMap;
  use murl::{Url, Scheme, Host, Label};
  use camino::Utf8PathBuf;
 
@@ -62,7 +60,7 @@ use camino::Utf8PathBuf;
      },
      port: None,
      path: Utf8PathBuf::from("/some/path"),
-     query: BTreeMap::from([
+     query: ordermap::OrderMap::from([
          ("a".to_owned(), "123".to_owned())
      ]),
      fragment: None,

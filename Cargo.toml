@@ -11,6 +11,7 @@ categories = ["web-programming", "encoding"]
 
 [dependencies]
 camino = "1.1.9"
+ordermap = "0.5.7"
 percent-encoding = "2.3.1"
 strum = { version = "0.26.3", features = ["derive"] }
 thiserror = "1.0.64"

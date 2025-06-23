@@ -1,9 +1,10 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 
 pub use camino;
+use ordermap::OrderMap;
 use percent_encoding::percent_decode_str;
 
-use std::{collections::BTreeMap, fmt::Display, str::FromStr};
+use std::{fmt::Display, str::FromStr};
 use camino::Utf8PathBuf;
 
 const ESCAPE_SET: &percent_encoding::AsciiSet =    &percent_encoding::CONTROLS
@@ -181,7 +182,7 @@ pub struct Url{
     /// The URL path, like `/` in `http://example.com/`
     pub path: Utf8PathBuf,
     /// The query parameters, like `a=123&b=456` in `http://example.com/?a=123&b=456`
-    pub query: BTreeMap<String, String>,
+    pub query: OrderMap<String, String>,
     /// The URL fragment, like `paragraph_1` in `http://example.com/#paragraph_1`
     pub fragment: Option<String>,
 }
@@ -233,7 +234,7 @@ impl FromStr for Url{
             return Err(UrlParsingError::PathNotAbsolute)
         }
 
-        let mut query = BTreeMap::<String, String>::new();
+        let mut query = OrderMap::<String, String>::new();
         for raw_pair in raw_query.split("&"){
             let (raw_key, raw_val) = match raw_pair.split_once('='){
                 None => (raw_pair, ""),
@@ -309,7 +310,7 @@ fn test_parsing(){
         },
         port: Some(123),
         path: Utf8PathBuf::from_str("/some/path/path_question_mark?path_question_mark").unwrap(),
-        query: BTreeMap::from([
+        query: OrderMap::from([
             ("space space".into(), "ampersand&ampersand".into()),
             ("equals=equals".into(), "hashtag#hashtag".into()),
         ]),
@@ -325,7 +326,7 @@ fn test_parsing(){
         },
         port: Some(123),
         path: Utf8PathBuf::from_str("/some/path/param_question_mark?param_question_mark").unwrap(),
-        query: BTreeMap::from([
+        query: OrderMap::from([
             ("space space".into(), "ampersand&ampersand".into()),
             ("equals=equals".into(), "hashtag#hashtag".into()),
         ]),
