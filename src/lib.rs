@@ -1,13 +1,13 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 
 pub use camino;
+use camino::Utf8PathBuf;
 use ordermap::OrderMap;
 use percent_encoding::percent_decode_str;
 
 use std::{fmt::Display, str::FromStr};
-use camino::Utf8PathBuf;
 
-const ESCAPE_SET: &percent_encoding::AsciiSet =    &percent_encoding::CONTROLS
+const ESCAPE_SET: &percent_encoding::AsciiSet = &percent_encoding::CONTROLS
     .add(b' ')
     .add(b'"').add(b'`')
     .add(b'<').add(b'>')
@@ -15,16 +15,22 @@ const ESCAPE_SET: &percent_encoding::AsciiSet =    &percent_encoding::CONTROLS
     .add(b'{').add(b'}')
     .add(b'%');
 
-#[derive(PartialEq, Eq, Copy, Clone, strum::Display, strum::AsRefStr, strum::VariantArray, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(strum::Display, strum::AsRefStr, strum::EnumString, strum::VariantArray)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Scheme{
     //Note: the order is important for parsing because ws is a prefix of wss
     #[strum(serialize="wss")]
+    #[cfg_attr(feature = "serde", serde(rename = "wss"))]
     Wss,
     #[strum(serialize="ws")]
+    #[cfg_attr(feature = "serde", serde(rename = "ws"))]
     Ws,
     #[strum(serialize="https")]
+    #[cfg_attr(feature = "serde", serde(rename = "https"))]
     Https,
     #[strum(serialize="http")]
+    #[cfg_attr(feature = "serde", serde(rename = "http"))]
     Http,
 }
 
@@ -55,6 +61,8 @@ pub enum LabelError{
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from="String"))]
 /// Each of the period-separated components of a hostname.
 ///
 /// E.g. `example` and `com` in `example.com`
@@ -84,12 +92,7 @@ impl Label{
     fn char_is_allowed(c: char) -> bool{
         return c.is_alphabetic() || "_-".contains(c);
     }
-}
-
-impl FromStr for Label{
-    type Err = LabelError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
+    pub fn validate_raw_label(value: &str) -> Result<&str, LabelError> {
         let first_char = value.chars().next().ok_or(LabelError::Empty)?;
         if !first_char.is_alphabetic(){
             return Err(LabelError::FirstCharNotAlphabetic)
@@ -100,11 +103,29 @@ impl FromStr for Label{
             }
             return Err(LabelError::ContainsInvalidChar)
         }
-        Ok(Self(value.to_owned()))
+        Ok(value)
+    }
+}
+
+impl FromStr for Label{
+    type Err = LabelError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(Self(Self::validate_raw_label(value)?.into()))
+    }
+}
+
+impl TryFrom<String> for Label {
+    type Error = LabelError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::validate_raw_label(&value)?;
+        Ok(Self(value))
     }
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// A host name like `example.com`
 pub struct Host{
     // The required, leftmost `Label` of the hostname, like `vm1` in `vm1.example.com`
@@ -171,6 +192,7 @@ pub enum UrlParsingError{
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// A structured, non-string-based URL
 pub struct Url{
     /// The URL scheme, like `http` in `http://example.com/`
@@ -317,7 +339,7 @@ fn test_parsing(){
         fragment: Some("inner_fragment".into()),
     };
 
-    let url_param = Url{
+    let url_as_param = Url{
         scheme: Scheme::Https,
         host: Host {
             name: Label::from_str("param_host").unwrap(),
@@ -333,18 +355,22 @@ fn test_parsing(){
         fragment: Some("inner_fragment".into()),
     };
 
-    url.query.insert("some_url".to_owned(), url_param.to_string());
+    url.query.insert("some_url".to_owned(), url_as_param.to_string());
 
     let raw: String = url.to_string();
     let parsed = Url::from_str(&raw).unwrap();
-
-    println!("orig: {url}");
-    println!("pars: {parsed}");
-
+   
     assert_eq!(url, parsed);
 
 
-    let parsed_url_param = Url::from_str(parsed.query.get("some_url").unwrap()).unwrap();
-    assert_eq!(url_param, parsed_url_param);
+    let parsed_url_as_param = Url::from_str(parsed.query.get("some_url").unwrap()).unwrap();
+    assert_eq!(url_as_param, parsed_url_as_param);
+
+    #[cfg(feature="serde")]
+    {
+        let serialized_url = serde_json::to_string(&url).unwrap();
+        let deserialized_url: Url = serde_json::from_str(&serialized_url).unwrap();
+        assert_eq!(deserialized_url, url);
+    }
 }
 
